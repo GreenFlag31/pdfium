@@ -5,16 +5,16 @@ export type PDFiumPageRenderOptions = PDFiumRenderOptions;
 
 export type PDFiumPageRenderCallback = (options: PDFiumPageRenderOptions) => Promise<Uint8Array>;
 export type PDFiumPageRenderParams = {
-  render: PDFiumPageRenderFunction;
+  render?: PDFiumPageRenderFunction;
   renderFormFields?: boolean;
   colorSpace?: ColorSpace;
 } & (
   | {
-      scale: number;
+      scale?: number;
     }
   | {
-      width: number;
-      height: number;
+      width?: number;
+      height?: number;
     }
 );
 

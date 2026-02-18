@@ -1,6 +1,5 @@
-import { promises as fs } from 'node:fs';
+import { promises as fs, promises } from 'node:fs';
 import sharp from 'sharp';
-
 import { toMatchImageSnapshot } from 'jest-image-snapshot';
 import { test, describe, expect, beforeAll, afterAll } from 'vitest';
 
@@ -30,11 +29,6 @@ async function renderFunction(options: PDFiumPageRenderOptions) {
     .png()
     .toBuffer();
 }
-
-// are you sure ? xD
-test('adds 1 + 2 to equal 3', () => {
-  expect(1 + 2).toBe(3);
-});
 
 describe('PDFium', () => {
   let library: PDFiumLibrary;
@@ -450,5 +444,89 @@ describe('PDFium', () => {
       });
       expect(result.data).toMatchImageSnapshot();
     });
+  });
+
+  test('should render a file in gray scale', async () => {
+    const buff = await fs.readFile(`test/data/test_3_with_images.pdf`);
+    const document = await library.loadDocument(buff);
+
+    const page = document.getPage(0);
+    const result = await page.render({
+      scale: 1,
+      colorSpace: 'Gray',
+      render: async (options) => {
+        return await sharp(options.data, {
+          raw: {
+            width: options.width,
+            height: options.height,
+            channels: 1,
+          },
+        })
+          .png()
+          .toBuffer();
+      },
+    });
+
+    const fileName = 'test_3_with_images_gray.png';
+
+    await promises.writeFile(fileName, result.data);
+
+    // file should exist
+    const stat = await promises.stat(fileName);
+
+    expect(stat.isFile()).toBe(true);
+
+    // comment this line if you want to see it
+    await promises.rm(fileName);
+    document.destroy();
+  });
+
+  test('should render gray scale', async () => {
+    const buff = await fs.readFile(`test/data/test_3_with_images.pdf`);
+    const document = await library.loadDocument(buff);
+
+    const page = document.getPage(0);
+    const result = await page.render({
+      scale: 1,
+      colorSpace: 'Gray',
+      render: 'bitmap',
+    });
+
+    const metadata = await sharp(result.data, {
+      raw: {
+        width: result.width,
+        height: result.height,
+        channels: 1,
+      },
+    }).metadata();
+
+    expect(metadata.channels).toBe(1);
+    expect(metadata.hasAlpha).toBe(false);
+    expect(result.data.length).toBe(result.width * result.height);
+
+    document.destroy();
+  });
+
+  test('scale should be 1 by default, colorSpace to BGRA and render function to bitmap (thus no arguments needed)', async () => {
+    const buff = await fs.readFile(`test/data/test_3_with_images.pdf`);
+    const document = await library.loadDocument(buff);
+
+    const page = document.getPage(0);
+    const result = await page.render();
+
+    const metadata = await sharp(result.data, {
+      raw: {
+        width: result.width,
+        height: result.height,
+        channels: 4,
+      },
+    }).metadata();
+
+    expect(metadata.channels).toBe(4);
+    expect(metadata.hasAlpha).toBe(true);
+    expect(metadata.space).toBe('srgb');
+    expect(result.data.length).toBe(result.width * result.height * 4);
+
+    document.destroy();
   });
 });

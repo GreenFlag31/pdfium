@@ -10,14 +10,14 @@ import type {
 import type { PDFiumRenderFunction, PDFiumRenderOptions } from './types.js';
 import { convertBitmapToImage } from './utils.js';
 import type * as t from './vendor/pdfium.js';
-import { DEFAULT_RENDER_OPTIONS } from './default.options.js';
+import { DEFAULT_PAGE_RENDER_OPTIONS } from './default.options.js';
 
 export class PDFiumPage {
   private readonly module: t.PDFium;
   private readonly pageIdx: number;
   private readonly documentIdx: number;
   private readonly document: PDFiumDocument;
-  private readonly number: number; // 0-based index of the page,
+  readonly number: number; // 0-based index of the page,
 
   constructor(options: {
     module: t.PDFium;
@@ -46,17 +46,17 @@ export class PDFiumPage {
   /**
    * Get the size of the page in points (1/72 inch)
    */
-  getSize(renderOptions: PDFiumPageRenderOptionsValidated) {
+  private getSize(renderOptions: PDFiumPageRenderOptionsValidated) {
     const { scale, width, height } = renderOptions;
 
     const { originalHeight, originalWidth } = this.getOriginalSize();
 
-    const computedWidth = width ?? originalWidth;
-    const computedHeight = height ?? originalHeight;
+    const computedWidth = Math.floor(width ?? originalWidth);
+    const computedHeight = Math.floor(height ?? originalHeight);
 
     return {
-      originalWidth,
-      originalHeight,
+      originalWidth: Math.floor(originalWidth),
+      originalHeight: Math.floor(originalHeight),
       width: Math.floor(computedWidth * scale),
       height: Math.floor(computedHeight * scale),
     };
@@ -102,14 +102,14 @@ export class PDFiumPage {
     }
   }
 
-  async render(options: PDFiumPageRenderParams): Promise<PDFiumPageRender> {
+  async render(options: PDFiumPageRenderParams = {}): Promise<PDFiumPageRender> {
     let formIdx: number | null = null;
     const renderOptions: PDFiumPageRenderOptionsValidated = {
-      ...DEFAULT_RENDER_OPTIONS,
+      ...DEFAULT_PAGE_RENDER_OPTIONS,
       ...options,
     };
 
-    const { colorSpace } = renderOptions;
+    const { colorSpace, render } = renderOptions;
     const { width, height, originalWidth, originalHeight } = this.getSize(renderOptions);
 
     time(`Render page ${this.number}`);
@@ -119,19 +119,18 @@ export class PDFiumPage {
       this.module._FORM_OnAfterLoadPage(this.pageIdx, formIdx);
     }
 
-    const buffSize = width * height * BYTES_PER_PIXEL;
+    const bytesPerPixel = FPDFBitmap[colorSpace];
+    log('bytesPerPixel', bytesPerPixel);
 
+    const buffSize = width * height * bytesPerPixel;
     const ptr = this.module.wasmExports.malloc(buffSize);
-
-    // Allocate a block of memory for the bitmap and fill it with zeros.
-    // this.module.HEAPU8.fill(0, ptr, ptr + buffSize);
 
     const bitmap = this.module._FPDFBitmap_CreateEx(
       width,
       height,
-      FPDFBitmap.BGRA,
+      bytesPerPixel,
       ptr,
-      width * BYTES_PER_PIXEL,
+      width * bytesPerPixel,
     );
 
     this.module._FPDFBitmap_FillRect(
@@ -143,8 +142,12 @@ export class PDFiumPage {
       0xffffffff, // color (white)
     );
 
-    const flags =
-      FPDFRenderFlag.REVERSE_BYTE_ORDER | FPDFRenderFlag.ANNOT | FPDFRenderFlag.LCD_TEXT;
+    let flags = FPDFRenderFlag.ANNOT | FPDFRenderFlag.LCD_TEXT;
+
+    flags =
+      colorSpace === 'Gray'
+        ? flags | FPDFRenderFlag.GRAYSCALE
+        : flags | FPDFRenderFlag.REVERSE_BYTE_ORDER;
 
     this.module._FPDF_RenderPageBitmap(
       bitmap,
@@ -182,7 +185,7 @@ export class PDFiumPage {
     this.module._FPDF_ClosePage(this.pageIdx);
 
     const image = await this.convertBitmapToImage({
-      render: options.render,
+      render,
       width,
       height,
       data: Buffer.from(this.module.HEAPU8.buffer, ptr, buffSize),
