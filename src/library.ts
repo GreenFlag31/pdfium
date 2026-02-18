@@ -1,10 +1,10 @@
-import { FPDFErrorCode } from "./constants.js";
-import { PDFiumDocument } from "./document.js";
-import { lengthBytesUTF8, stringToUTF8 } from "./emscripten.js";
-import type * as t from "./vendor/pdfium.js";
+import { FPDFErrorCode } from './constants.js';
+import { PDFiumDocument } from './document.js';
+import { lengthBytesUTF8, stringToUTF8 } from './emscripten.js';
+import type * as t from './vendor/pdfium.js';
 
 const NO_OPTION_WARNING =
-  "@hyzyla/pdfium: wasmUrl, wasmBinary is required for browser environment. \n\n" +
+  '@hyzyla/pdfium: wasmUrl, wasmBinary is required for browser environment. \n\n' +
   "Please provide the wasm binary or URL to the init method. You can also use '@hyzyla/pdfium/browser/cdn'" +
   "or '@hyzyla/pdfium/browser/base64' for quick setup, but it's not recommended for production use.";
 
@@ -12,7 +12,7 @@ const NO_OPTION_WARNING =
  * Converts a JavaScript string to a null-terminated C string and returns
  * a pointer to the allocated memory.
  *
- * Remeber to free the allocated memory using the `free` function after
+ * Remember to free the allocated memory using the `free` function after
  * you're done with the string.
  */
 function stringToCString(module: t.PDFium, str: string): number {
@@ -53,7 +53,7 @@ export class PDFiumLibrary {
     } else {
       // Node.js will use wasm binary from node_modules, but for browser environment,
       // user must provide the wasm binary or URL
-      if (typeof window !== "undefined") {
+      if (typeof window !== 'undefined') {
         console.error(NO_OPTION_WARNING);
         throw new Error(NO_OPTION_WARNING);
       }
@@ -75,7 +75,7 @@ export class PDFiumLibrary {
     this.module = module;
   }
 
-  async loadDocument(buff: Uint8Array, password = "") {
+  async loadDocument(buff: Uint8Array, password = '') {
     const size = buff.length;
 
     // This line allocates a block of memory of size bytes and returns a pointer to the first byte of the block.
@@ -114,17 +114,17 @@ export class PDFiumLibrary {
 
       switch (lastError) {
         case FPDFErrorCode.UNKNOWN:
-          throw new Error("Unknown error");
+          throw new Error('Unknown error');
         case FPDFErrorCode.FILE:
-          throw new Error("File not found or could not be opened");
+          throw new Error('File not found or could not be opened');
         case FPDFErrorCode.FORMAT:
-          throw new Error("File not in PDF format or corrupted");
+          throw new Error('File not in PDF format or corrupted');
         case FPDFErrorCode.PASSWORD:
-          throw new Error("Password required or incorrect password");
+          throw new Error('Password required or incorrect password');
         case FPDFErrorCode.SECURITY:
-          throw new Error("Unsupported security scheme");
+          throw new Error('Unsupported security scheme');
         case FPDFErrorCode.PAGE:
-          throw new Error("Page not found or content error");
+          throw new Error('Page not found or content error');
         default:
           throw new Error(`PDF Loading = ${lastError}`);
       }

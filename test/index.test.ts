@@ -1,12 +1,16 @@
-import { promises as fs } from "node:fs";
-import sharp from "sharp";
+import { promises as fs } from 'node:fs';
+import sharp from 'sharp';
 
-import { toMatchImageSnapshot } from "jest-image-snapshot";
-import { test, describe, expect, beforeAll, afterAll } from "vitest";
+import { toMatchImageSnapshot } from 'jest-image-snapshot';
+import { test, describe, expect, beforeAll, afterAll } from 'vitest';
 
-import { type PDFiumDocument, PDFiumLibrary, PDFiumPage, PDFiumPageRenderOptions } from "../src/index.esm";
-import type { PDFiumImageObject } from "../src/objects";
-
+import {
+  type PDFiumDocument,
+  PDFiumLibrary,
+  PDFiumPage,
+  PDFiumPageRenderOptions,
+} from '../src/index.esm';
+import type { PDFiumImageObject } from '../src/objects';
 
 expect.extend({ toMatchImageSnapshot });
 
@@ -27,16 +31,16 @@ async function renderFunction(options: PDFiumPageRenderOptions) {
     .toBuffer();
 }
 
-
-test("adds 1 + 2 to equal 3", () => {
+// are you sure ? xD
+test('adds 1 + 2 to equal 3', () => {
   expect(1 + 2).toBe(3);
 });
 
-describe("PDFium", () => {
+describe('PDFium', () => {
   let library: PDFiumLibrary;
   beforeAll(async () => {
     library = await PDFiumLibrary.init({
-      wasmBinary: await fs.readFile("./src/vendor/pdfium.wasm"),
+      wasmBinary: await fs.readFile('./src/vendor/pdfium.wasm'),
     });
   });
 
@@ -54,16 +58,16 @@ describe("PDFium", () => {
     document.destroy();
   }
 
-  describe("PDFiumDocument", () => {
-    test("should load a document from a buffer and return the number of pages", async () => {
-      await loadDocument("test_1.pdf", async (document) => {
+  describe('PDFiumDocument', () => {
+    test('should load a document from a buffer and return the number of pages', async () => {
+      await loadDocument('test_1.pdf', async (document) => {
         const numOfPages = document.getPageCount();
         expect(numOfPages).toBe(4);
       });
     });
 
-    test("shoul iterate over pages", async () => {
-      await loadDocument("test_1.pdf", async (document) => {
+    test('shoul iterate over pages', async () => {
+      await loadDocument('test_1.pdf', async (document) => {
         let i = 0;
         for (const page of document.pages()) {
           expect(page).toBeInstanceOf(PDFiumPage);
@@ -73,12 +77,12 @@ describe("PDFium", () => {
       });
     });
 
-    test("should load document successfully even after a previous unrelated error", async () => {
+    test('should load document successfully even after a previous unrelated error', async () => {
       let doc1: PDFiumDocument | undefined;
       let doc2: PDFiumDocument | undefined;
       try {
         // Load the first document - it's not a PDF file, so it will throw an error
-        const buff1 = await fs.readFile("test/data/test_5.txt");
+        const buff1 = await fs.readFile('test/data/test_5.txt');
         try {
           doc1 = await library.loadDocument(buff1);
         } catch {
@@ -86,7 +90,7 @@ describe("PDFium", () => {
         }
 
         // Now, try loading a second, different document
-        const buff2 = await fs.readFile("test/data/test_3_with_images.pdf");
+        const buff2 = await fs.readFile('test/data/test_3_with_images.pdf');
         doc2 = await library.loadDocument(buff2);
 
         // Verify the second document loaded correctly despite the previous error
@@ -99,12 +103,12 @@ describe("PDFium", () => {
     });
   });
 
-  describe("PDFiumPage", () => {
-    test("should render a bitmap of a page", async () => {
-      await loadDocument("test_1.pdf", async (document) => {
+  describe('PDFiumPage', () => {
+    test('should render a bitmap of a page', async () => {
+      await loadDocument('test_1.pdf', async (document) => {
         const buff = await document.getPage(0).render({
           scale: 1,
-          render: "bitmap",
+          render: 'bitmap',
         });
         expect(buff.height).toBe(A4_SIZE.height);
         expect(buff.width).toBe(A4_SIZE.width);
@@ -113,24 +117,22 @@ describe("PDFium", () => {
         expect(buff.data.length).toBe(A4_SIZE.height * A4_SIZE.width * 4);
       });
     });
-    test("should render a bitmap of a page with scale", async () => {
-      await loadDocument("test_1.pdf", async (document) => {
+    test('should render a bitmap of a page with scale', async () => {
+      await loadDocument('test_1.pdf', async (document) => {
         const buff = await document.getPage(0).render({
           scale: 3,
-          render: "bitmap",
+          render: 'bitmap',
         });
         expect(buff.height).toBe(A4_SIZE.height * 3);
         expect(buff.width).toBe(A4_SIZE.width * 3);
         expect(buff.originalHeight).toBe(A4_SIZE.height);
         expect(buff.originalWidth).toBe(A4_SIZE.width);
-        expect(buff.data.length).toBe(
-          A4_SIZE.height * 3 * A4_SIZE.width * 3 * 4,
-        );
+        expect(buff.data.length).toBe(A4_SIZE.height * 3 * A4_SIZE.width * 3 * 4);
       });
     });
 
-    test("should render a sharp image of a page", async () => {
-      await loadDocument("test_1.pdf", async (document) => {
+    test('should render a sharp image of a page', async () => {
+      await loadDocument('test_1.pdf', async (document) => {
         const result = await document.getPage(0).render({
           scale: 1,
           render: renderFunction,
@@ -143,8 +145,8 @@ describe("PDFium", () => {
       });
     });
 
-    test("should render a sharp image of a page with scale", async () => {
-      await loadDocument("test_1.pdf", async (document) => {
+    test('should render a sharp image of a page with scale', async () => {
+      await loadDocument('test_1.pdf', async (document) => {
         const result = await document.getPage(0).render({
           scale: 3,
           render: renderFunction,
@@ -157,8 +159,8 @@ describe("PDFium", () => {
       });
     });
 
-    test("should render a sharp image of a page with custom smaller width and height", async () => {
-      await loadDocument("test_1.pdf", async (document) => {
+    test('should render a sharp image of a page with custom smaller width and height', async () => {
+      await loadDocument('test_1.pdf', async (document) => {
         const result = await document.getPage(0).render({
           // original size is 595x841, but let's try use different proportions to see how it works
           width: 100,
@@ -173,8 +175,8 @@ describe("PDFium", () => {
       });
     });
 
-    test("should render a sharp image of a page with custom bigger width and height", async () => {
-      await loadDocument("test_1.pdf", async (document) => {
+    test('should render a sharp image of a page with custom bigger width and height', async () => {
+      await loadDocument('test_1.pdf', async (document) => {
         const result = await document.getPage(0).render({
           width: 9000,
           height: 4000,
@@ -188,19 +190,19 @@ describe("PDFium", () => {
       });
     });
 
-    test("should call a custom render function", async () => {
-      await loadDocument("test_1.pdf", async (document) => {
+    test('should call a custom render function', async () => {
+      await loadDocument('test_1.pdf', async (document) => {
         const result = await document.getPage(0).render({
           scale: 1,
           render: async (options) => {
             expect(options.data).toBeInstanceOf(Uint8Array);
             expect(options.height).toBe(A4_SIZE.height);
             expect(options.width).toBe(A4_SIZE.width);
-            return new TextEncoder().encode("test");
+            return new TextEncoder().encode('test');
           },
         });
         expect(result).toEqual({
-          data: new TextEncoder().encode("test"),
+          data: new TextEncoder().encode('test'),
           height: A4_SIZE.height,
           width: A4_SIZE.width,
           originalHeight: A4_SIZE.height,
@@ -209,56 +211,56 @@ describe("PDFium", () => {
       });
     });
 
-    test("should open a PDF with password", async () => {
-      const buff = await fs.readFile("test/data/test_1_pass_12345678.pdf");
-      const password = "12345678";
+    test('should open a PDF with password', async () => {
+      const buff = await fs.readFile('test/data/test_1_pass_12345678.pdf');
+      const password = '12345678';
       const document = await library.loadDocument(buff, password);
       document.destroy();
     });
 
-    test("should open a PDF with password 2", async () => {
-      const buff = await fs.readFile("test/data/test_2_pass_12345678.pdf");
-      const password = "12345678";
+    test('should open a PDF with password 2', async () => {
+      const buff = await fs.readFile('test/data/test_2_pass_12345678.pdf');
+      const password = '12345678';
       const document = await library.loadDocument(buff, password);
       document.destroy();
     });
   });
 
-  describe("PDFiumImageObject", () => {
-    test("get page objects count", async () => {
-      await loadDocument("test_1.pdf", async (document) => {
+  describe('PDFiumImageObject', () => {
+    test('get page objects count', async () => {
+      await loadDocument('test_1.pdf', async (document) => {
         const page = document.getPage(0);
         const count = page.getObjectCount();
         expect(count).toBe(182);
       });
     });
 
-    test("get page objects count 2", async () => {
-      await loadDocument("test_3_with_images.pdf", async (document) => {
+    test('get page objects count 2', async () => {
+      await loadDocument('test_3_with_images.pdf', async (document) => {
         const page = document.getPage(0);
         const count = page.getObjectCount();
         expect(count).toBe(7);
       });
     });
 
-    test("get page object", async () => {
-      await loadDocument("test_3_with_images.pdf", async (document) => {
+    test('get page object', async () => {
+      await loadDocument('test_3_with_images.pdf', async (document) => {
         const page = document.getPage(0);
         const object1 = page.getObject(0);
         expect(object1).toBeDefined();
       });
     });
 
-    test("get page object type", async () => {
-      await loadDocument("test_3_with_images.pdf", async (document) => {
+    test('get page object type', async () => {
+      await loadDocument('test_3_with_images.pdf', async (document) => {
         const page = document.getPage(0);
         const object1 = page.getObject(0);
-        expect(object1.type).toBe("text");
+        expect(object1.type).toBe('text');
       });
     });
 
-    test("get page object type stat 1", async () => {
-      await loadDocument("test_1.pdf", async (document) => {
+    test('get page object type stat 1', async () => {
+      await loadDocument('test_1.pdf', async (document) => {
         const page = document.getPage(0);
         const typeStat = new Map<string, number>();
         for (const object of page.objects()) {
@@ -272,8 +274,8 @@ describe("PDFium", () => {
       });
     });
 
-    test("get page object type stat 2", async () => {
-      await loadDocument("test_3_with_images.pdf", async (document) => {
+    test('get page object type stat 2', async () => {
+      await loadDocument('test_3_with_images.pdf', async (document) => {
         const page = document.getPage(0);
         const typeStat = new Map<string, number>();
         for (const object of page.objects()) {
@@ -288,11 +290,11 @@ describe("PDFium", () => {
       });
     });
 
-    test("get page object image", async () => {
-      await loadDocument("test_3_with_images.pdf", async (document) => {
+    test('get page object image', async () => {
+      await loadDocument('test_3_with_images.pdf', async (document) => {
         for (const page of document.pages()) {
           for (const object of page.objects()) {
-            if (object.type === "image") {
+            if (object.type === 'image') {
               const imageObj = object as PDFiumImageObject;
 
               const { data: image } = await imageObj.render({
@@ -306,51 +308,51 @@ describe("PDFium", () => {
       });
     });
 
-    test("get page object image raw", async () => {
-      await loadDocument("test_4_with_images.pdf", async (document) => {
+    test('get page object image raw', async () => {
+      await loadDocument('test_4_with_images.pdf', async (document) => {
         const expected = [
           {
             size: 1523, // 1.5 KB
             width: 313,
             height: 234,
-            filters: ["DCTDecode"],
+            filters: ['DCTDecode'],
           },
           {
             size: 14679, // 14 KB
             width: 313,
             height: 234,
-            filters: ["DCTDecode"],
+            filters: ['DCTDecode'],
           },
           {
             size: 57828, // 57 KB
             width: 400,
             height: 400,
-            filters: ["FlateDecode"],
+            filters: ['FlateDecode'],
           },
           {
             size: 680515, // 680 KB
             width: 640,
             height: 480,
-            filters: ["FlateDecode"],
+            filters: ['FlateDecode'],
           },
           {
             size: 176469, // 176 KB
             width: 720,
             height: 486,
-            filters: ["FlateDecode"],
+            filters: ['FlateDecode'],
           },
           {
             size: 1064661, // 1 MB
             width: 762,
             height: 1309,
-            filters: ["FlateDecode"],
+            filters: ['FlateDecode'],
           },
-        ]
+        ];
 
         const result: any[] = [];
         for (const page of document.pages()) {
           for (const object of page.objects()) {
-            if (object.type === "image") {
+            if (object.type === 'image') {
               const imageObj = object as PDFiumImageObject;
 
               const image = await imageObj.getImageDataRaw();
@@ -359,25 +361,24 @@ describe("PDFium", () => {
                 width: image.width,
                 height: image.height,
                 filters: image.filters,
-              })
+              });
             }
           }
         }
-        expect(result).toMatchObject(expected)
+        expect(result).toMatchObject(expected);
       });
     });
 
-    test("get page object image jpeg", async () => {
-      await loadDocument("test_4_with_images.pdf", async (document) => {
-
+    test('get page object image jpeg', async () => {
+      await loadDocument('test_4_with_images.pdf', async (document) => {
         for (const page of document.pages()) {
           for (const object of page.objects()) {
-            if (object.type === "image") {
+            if (object.type === 'image') {
               const imageObj = object as PDFiumImageObject;
 
               const image = await imageObj.render({
                 render: async (options) => {
-                  const { default: sharp } = await import("sharp");
+                  const { default: sharp } = await import('sharp');
                   return await sharp(options.data, {
                     raw: {
                       width: options.width,
@@ -387,7 +388,7 @@ describe("PDFium", () => {
                   })
                     .jpeg()
                     .toBuffer();
-                }
+                },
               });
               // we can't use "toMatchImageSnapshot" here because it doesn't support jpeg
               expect(image.data).toBeDefined();
@@ -398,8 +399,8 @@ describe("PDFium", () => {
     });
   });
 
-  test("should render an image of a page without form elements", async () => {
-    await loadDocument("test_6_with_form.pdf", async (document) => {
+  test('should render an image of a page without form elements', async () => {
+    await loadDocument('test_6_with_form.pdf', async (document) => {
       const result = await document.getPage(0).render({
         scale: 3,
         render: renderFunction,
@@ -408,29 +409,8 @@ describe("PDFium", () => {
     });
   });
 
-  test("should render an image of a page with form fields enabled", async () => {
-    await loadDocument("test_6_with_form.pdf", async (document) => {
-      const result = await document.getPage(0).render({
-        scale: 3,
-        renderFormFields: true,
-        render: renderFunction,
-      });
-      expect(result.data).toMatchImageSnapshot();
-    });
-  });
-
-    test("should render an image of a page without form elements (2)", async () => {
-    await loadDocument("test_7_with_form.pdf", async (document) => {
-      const result = await document.getPage(0).render({
-        scale: 3,
-        render: renderFunction,
-      });
-      expect(result.data).toMatchImageSnapshot();
-    });
-  });
-
-  test("should render an image of a page with form fields enabled (2)", async () => {
-    await loadDocument("test_7_with_form.pdf", async (document) => {
+  test('should render an image of a page with form fields enabled', async () => {
+    await loadDocument('test_6_with_form.pdf', async (document) => {
       const result = await document.getPage(0).render({
         scale: 3,
         renderFormFields: true,
@@ -440,8 +420,29 @@ describe("PDFium", () => {
     });
   });
 
-  test("should render with signature", async () => {
-    await loadDocument("test_8_with_signature.pdf", async (document) => {
+  test('should render an image of a page without form elements (2)', async () => {
+    await loadDocument('test_7_with_form.pdf', async (document) => {
+      const result = await document.getPage(0).render({
+        scale: 3,
+        render: renderFunction,
+      });
+      expect(result.data).toMatchImageSnapshot();
+    });
+  });
+
+  test('should render an image of a page with form fields enabled (2)', async () => {
+    await loadDocument('test_7_with_form.pdf', async (document) => {
+      const result = await document.getPage(0).render({
+        scale: 3,
+        renderFormFields: true,
+        render: renderFunction,
+      });
+      expect(result.data).toMatchImageSnapshot();
+    });
+  });
+
+  test('should render with signature', async () => {
+    await loadDocument('test_8_with_signature.pdf', async (document) => {
       const result = await document.getPage(0).render({
         scale: 3,
         render: renderFunction,
