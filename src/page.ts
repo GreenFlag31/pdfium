@@ -1,5 +1,5 @@
 import { log, time, timeEnd } from 'console';
-import { BYTES_PER_PIXEL, FPDFBitmap, FPDFRenderFlag } from './constants.js';
+import { FPDFBitmap, FPDFRenderFlag } from './constants.js';
 import type { PDFiumDocument } from './document.js';
 import { type PDFiumObject, PDFiumObjectBase } from './objects.js';
 import type {
@@ -17,7 +17,7 @@ export class PDFiumPage {
   private readonly pageIdx: number;
   private readonly documentIdx: number;
   private readonly document: PDFiumDocument;
-  readonly number: number; // 0-based index of the page,
+  readonly number: number; // zero based index of the page
 
   constructor(options: {
     module: t.PDFium;
@@ -45,6 +45,7 @@ export class PDFiumPage {
 
   /**
    * Get the size of the page in points (1/72 inch)
+   * Floored original values needed in testing. Scale can be a float number.
    */
   private getSize(renderOptions: PDFiumPageRenderOptionsValidated) {
     const { scale, width, height } = renderOptions;
