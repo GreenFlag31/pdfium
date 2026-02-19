@@ -1,16 +1,11 @@
-import { log, time, timeEnd } from 'console';
-import { FPDFBitmap, FPDFRenderFlag } from './constants.js';
-import type { PDFiumDocument } from './document.js';
-import { type PDFiumObject, PDFiumObjectBase } from './objects.js';
-import type {
-  PDFiumPageRender,
-  PDFiumPageRenderOptionsValidated,
-  PDFiumPageRenderParams,
-} from './page.types.js';
-import type { PDFiumRenderFunction, PDFiumRenderOptions } from './types.js';
-import { convertBitmapToImage } from './utils.js';
-import type * as t from './vendor/pdfium.js';
-import { DEFAULT_PAGE_RENDER_OPTIONS } from './default.options.js';
+import { FPDFBitmap, FPDFRenderFlag } from "./constants.js";
+import { DEFAULT_PAGE_RENDER_OPTIONS } from "./default.options.js";
+import type { PDFiumDocument } from "./document.js";
+import { type PDFiumObject, PDFiumObjectBase } from "./objects.js";
+import type { PDFiumPageRender, PDFiumPageRenderOptionsValidated, PDFiumPageRenderParams } from "./page.types.js";
+import type { PDFiumRenderFunction, PDFiumRenderOptions } from "./types.js";
+import { convertBitmapToImage } from "./utils.js";
+import type * as t from "./vendor/pdfium.js";
 
 export class PDFiumPage {
   private readonly module: t.PDFium;
@@ -69,14 +64,14 @@ export class PDFiumPage {
   getText(): string {
     const textPage = this.module._FPDFText_LoadPage(this.pageIdx);
     if (!textPage) {
-      throw new Error('Failed to load text page');
+      throw new Error("Failed to load text page");
     }
 
     try {
       const charCount = this.module._FPDFText_CountChars(textPage);
 
       if (charCount <= 0) {
-        return '';
+        return "";
       }
 
       const bufferSize = (charCount + 1) * 2;
@@ -86,13 +81,13 @@ export class PDFiumPage {
         const length = this.module._FPDFText_GetText(textPage, 0, charCount, textPtr);
 
         if (length <= 0) {
-          return '';
+          return "";
         }
 
         // Convert the UTF-16LE buffer to a JavaScript string
         // Subtract 1 from length to remove the null terminator
         const buffer = new Uint8Array(this.module.HEAPU8.buffer, textPtr, (length - 1) * 2);
-        const text = new TextDecoder('utf-16le').decode(buffer);
+        const text = new TextDecoder("utf-16le").decode(buffer);
 
         return text;
       } finally {
@@ -113,26 +108,17 @@ export class PDFiumPage {
     const { colorSpace, render } = renderOptions;
     const { width, height, originalWidth, originalHeight } = this.getSize(renderOptions);
 
-    time(`Render page ${this.number}`);
-
     if (options.renderFormFields) {
       formIdx = this.document.initializeFormFields(); // will be initialized only once
       this.module._FORM_OnAfterLoadPage(this.pageIdx, formIdx);
     }
 
     const bytesPerPixel = FPDFBitmap[colorSpace];
-    log('bytesPerPixel', bytesPerPixel);
 
     const buffSize = width * height * bytesPerPixel;
     const ptr = this.module.wasmExports.malloc(buffSize);
 
-    const bitmap = this.module._FPDFBitmap_CreateEx(
-      width,
-      height,
-      bytesPerPixel,
-      ptr,
-      width * bytesPerPixel,
-    );
+    const bitmap = this.module._FPDFBitmap_CreateEx(width, height, bytesPerPixel, ptr, width * bytesPerPixel);
 
     this.module._FPDFBitmap_FillRect(
       bitmap,
@@ -145,10 +131,7 @@ export class PDFiumPage {
 
     let flags = FPDFRenderFlag.ANNOT | FPDFRenderFlag.LCD_TEXT;
 
-    flags =
-      colorSpace === 'Gray'
-        ? flags | FPDFRenderFlag.GRAYSCALE
-        : flags | FPDFRenderFlag.REVERSE_BYTE_ORDER;
+    flags = colorSpace === "Gray" ? flags | FPDFRenderFlag.GRAYSCALE : flags | FPDFRenderFlag.REVERSE_BYTE_ORDER;
 
     this.module._FPDF_RenderPageBitmap(
       bitmap,
@@ -192,7 +175,6 @@ export class PDFiumPage {
       data: Buffer.from(this.module.HEAPU8.buffer, ptr, buffSize),
     });
 
-    timeEnd(`Render page ${this.number}`);
     this.module.wasmExports.free(ptr);
 
     return {

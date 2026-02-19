@@ -8,7 +8,8 @@
 - adding gray option (usefull for example for OCR) in the `render option`
   - adapting BYTES_PER_PIXEL, buffer size, and setting to gray (1 pixel)
 - `number` in the `PDFiumPage` class should be readonly (assigning in constructor is allowed in typescript).
-- You mention in the documentation that the default render is to `bitmap` and `scale` to 1, but these are required. I believe it should be optional, since it's default.
+- You mention in the documentation that the default render is to `bitmap` and `scale` to 1, but it was not effective, since these are required. I believe it should be optional, since it's default, making any configuration optional.
+- I had Prettier enabled on my side, which changed strings to single quote. You used double quotes for string, so I've added this rule in `Biome` and ran it on the projet (`npm run check:fix`).
 
 ## Grayscale
 

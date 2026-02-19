@@ -1,24 +1,20 @@
-import type { PDFiumRenderFunction, PDFiumRenderOptions } from './types.js';
+import type { PDFiumRenderFunction, PDFiumRenderOptions } from "./types.js";
 
 export type PDFiumPageRenderFunction = PDFiumRenderFunction;
 export type PDFiumPageRenderOptions = PDFiumRenderOptions;
 
 export type PDFiumPageRenderCallback = (options: PDFiumPageRenderOptions) => Promise<Uint8Array>;
+
 export type PDFiumPageRenderParams = {
   render?: PDFiumPageRenderFunction;
   renderFormFields?: boolean;
   colorSpace?: ColorSpace;
-} & (
-  | {
-      scale?: number;
-    }
-  | {
-      width?: number;
-      height?: number;
-    }
-);
+  scale?: number;
+  width?: number;
+  height?: number;
+};
 
-export type ColorSpace = 'BGRA' | 'Gray';
+export type ColorSpace = "BGRA" | "Gray";
 
 export type PDFiumScaleAndRender = {
   scale: number;
