@@ -1,14 +1,9 @@
 import { promises as fs, promises } from "node:fs";
-import sharp from "sharp";
 import { toMatchImageSnapshot } from "jest-image-snapshot";
-import { test, describe, expect, beforeAll, afterAll } from "vitest";
+import sharp from "sharp";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
-import {
-  type PDFiumDocument,
-  PDFiumLibrary,
-  PDFiumPage,
-  PDFiumPageRenderOptions,
-} from "../src/index.esm";
+import { type PDFiumDocument, PDFiumLibrary, PDFiumPage, type PDFiumPageRenderOptions } from "../src/index.esm";
 import type { PDFiumImageObject } from "../src/objects";
 
 expect.extend({ toMatchImageSnapshot });
@@ -42,10 +37,7 @@ describe("PDFium", () => {
     library?.destroy();
   });
 
-  async function loadDocument(
-    filename: string,
-    callback: (document: PDFiumDocument) => Promise<void>,
-  ) {
+  async function loadDocument(filename: string, callback: (document: PDFiumDocument) => Promise<void>) {
     const buff = await fs.readFile(`test/data/${filename}`);
     const document = await library.loadDocument(buff);
     await callback(document);
@@ -75,7 +67,7 @@ describe("PDFium", () => {
       let doc1: PDFiumDocument | undefined;
       let doc2: PDFiumDocument | undefined;
       try {
-        // Load the first document - it"s not a PDF file, so it will throw an error
+        // Load the first document - it's not a PDF file, so it will throw an error
         const buff1 = await fs.readFile("test/data/test_5.txt");
         try {
           doc1 = await library.loadDocument(buff1);
@@ -343,7 +335,7 @@ describe("PDFium", () => {
           },
         ];
 
-        const result: any[] = [];
+        const result: { size: number; width: number; height: number; filters: string[] }[] = [];
         for (const page of document.pages()) {
           for (const object of page.objects()) {
             if (object.type === "image") {
@@ -384,7 +376,7 @@ describe("PDFium", () => {
                     .toBuffer();
                 },
               });
-              // we can"t use "toMatchImageSnapshot" here because it doesn"t support jpeg
+              // we can't use "toMatchImageSnapshot" here because it doesn't support jpeg
               expect(image.data).toBeDefined();
             }
           }

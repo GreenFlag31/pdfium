@@ -1,5 +1,5 @@
+import fs from "node:fs";
 import { PDFiumLibrary } from "@hyzyla/pdfium";
-import fs from "fs";
 
 async function testPdfiumPackage() {
   const library = await PDFiumLibrary.init();

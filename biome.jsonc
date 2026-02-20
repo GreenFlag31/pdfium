@@ -5,9 +5,11 @@
     "includes": [
       "src/**/*.ts",
       "docs/**/*.tsx",
+      "demo/**/*.*js",
       "demo/**/*.js",
       "demo/**/*.ts",
       "demo/**/*.tsx",
+      "test/**/*.ts",
       "biome.jsonc",
       "rollup.config.mjs",
       "tsconfig.json",

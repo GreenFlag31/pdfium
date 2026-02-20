@@ -1,5 +1,5 @@
 const { PDFiumLibrary } = require("@hyzyla/pdfium");
-const fs = require("fs");
+const fs = require("node:fs");
 
 async function testPdfiumPackage() {
   const library = await PDFiumLibrary.init();
