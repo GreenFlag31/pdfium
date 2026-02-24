@@ -120,13 +120,14 @@ export class PDFiumPage {
     const bytesPerPixel = FPDFBitmap[colorSpace];
     const buffSize = width * height * bytesPerPixel;
     const ptr = this.module.wasmExports.malloc(buffSize);
+    let bitmap: number | null = null;
 
     if (ptr === 0) {
       throw new Error('Failed to allocate memory for bitmap');
     }
 
     try {
-      const bitmap = this.module._FPDFBitmap_CreateEx(
+      bitmap = this.module._FPDFBitmap_CreateEx(
         width,
         height,
         bytesPerPixel,
@@ -180,12 +181,6 @@ export class PDFiumPage {
         this.module._FORM_OnBeforeClosePage(this.pageIdx, formIdx);
       }
 
-      this.module._FPDFBitmap_Destroy(bitmap);
-
-      // TODO: consider to create a separate function for closing the page and free
-      // resources only when needed, not after every render
-      this.module._FPDF_ClosePage(this.pageIdx);
-
       const image = await this.convertBitmapToImage({
         render,
         width,
@@ -202,6 +197,13 @@ export class PDFiumPage {
         data: image,
       };
     } finally {
+      // always clean up resources in case of success / error
+      if (bitmap !== null) {
+        this.module._FPDFBitmap_Destroy(bitmap);
+      }
+
+      // TODO: consider to create a separate function for closing the page and free resources only when needed, not after every render
+      this.module._FPDF_ClosePage(this.pageIdx);
       this.module.wasmExports.free(ptr);
     }
   }
