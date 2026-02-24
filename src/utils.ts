@@ -1,8 +1,5 @@
-import type { PDFiumRenderFunction, PDFiumRenderOptions } from "./types.js";
+import type { PDFiumRenderFunction, PDFiumRenderOptions } from './types.js';
 
-/**
- * Memory consumption : ONLY copy (slice) in case of bitmap rendering.
- */
 export async function convertBitmapToImage(
   options: {
     render: PDFiumRenderFunction;
@@ -10,11 +7,11 @@ export async function convertBitmapToImage(
 ): Promise<Uint8Array> {
   const { data, render } = options;
 
-  if (typeof render === "function") {
+  if (typeof render === 'function') {
     return await render(options);
   }
 
-  return data.slice();
+  return data;
 }
 
 export function readUInt16LE(buffer: Uint8Array, offset = 0): number {

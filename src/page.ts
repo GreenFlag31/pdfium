@@ -1,11 +1,15 @@
-import { FPDFBitmap, FPDFRenderFlag } from "./constants.js";
-import { DEFAULT_PAGE_RENDER_OPTIONS } from "./default.options.js";
-import type { PDFiumDocument } from "./document.js";
-import { type PDFiumObject, PDFiumObjectBase } from "./objects.js";
-import type { PDFiumPageRender, PDFiumPageRenderOptionsValidated, PDFiumPageRenderParams } from "./page.types.js";
-import type { PDFiumRenderFunction, PDFiumRenderOptions } from "./types.js";
-import { convertBitmapToImage } from "./utils.js";
-import type * as t from "./vendor/pdfium.js";
+import { FPDFBitmap, FPDFRenderFlag } from './constants.js';
+import { DEFAULT_PAGE_RENDER_OPTIONS } from './default.options.js';
+import type { PDFiumDocument } from './document.js';
+import { type PDFiumObject, PDFiumObjectBase } from './objects.js';
+import type {
+  PDFiumPageRender,
+  PDFiumPageRenderOptionsValidated,
+  PDFiumPageRenderParams,
+} from './page.types.js';
+import type { PDFiumRenderFunction, PDFiumRenderOptions } from './types.js';
+import { convertBitmapToImage } from './utils.js';
+import type * as t from './vendor/pdfium.js';
 
 export class PDFiumPage {
   private readonly module: t.PDFium;
@@ -64,14 +68,14 @@ export class PDFiumPage {
   getText(): string {
     const textPage = this.module._FPDFText_LoadPage(this.pageIdx);
     if (!textPage) {
-      throw new Error("Failed to load text page");
+      throw new Error('Failed to load text page');
     }
 
     try {
       const charCount = this.module._FPDFText_CountChars(textPage);
 
       if (charCount <= 0) {
-        return "";
+        return '';
       }
 
       const bufferSize = (charCount + 1) * 2;
@@ -81,13 +85,13 @@ export class PDFiumPage {
         const length = this.module._FPDFText_GetText(textPage, 0, charCount, textPtr);
 
         if (length <= 0) {
-          return "";
+          return '';
         }
 
         // Convert the UTF-16LE buffer to a JavaScript string
         // Subtract 1 from length to remove the null terminator
         const buffer = new Uint8Array(this.module.HEAPU8.buffer, textPtr, (length - 1) * 2);
-        const text = new TextDecoder("utf-16le").decode(buffer);
+        const text = new TextDecoder('utf-16le').decode(buffer);
 
         return text;
       } finally {
@@ -105,51 +109,48 @@ export class PDFiumPage {
       ...options,
     };
 
-    const { colorSpace, render } = renderOptions;
+    const { colorSpace, render, renderFormFields } = renderOptions;
     const { width, height, originalWidth, originalHeight } = this.getSize(renderOptions);
 
-    if (options.renderFormFields) {
+    if (renderFormFields) {
       formIdx = this.document.initializeFormFields(); // will be initialized only once
       this.module._FORM_OnAfterLoadPage(this.pageIdx, formIdx);
     }
 
     const bytesPerPixel = FPDFBitmap[colorSpace];
-
     const buffSize = width * height * bytesPerPixel;
     const ptr = this.module.wasmExports.malloc(buffSize);
 
-    const bitmap = this.module._FPDFBitmap_CreateEx(width, height, bytesPerPixel, ptr, width * bytesPerPixel);
+    if (ptr === 0) {
+      throw new Error('Failed to allocate memory for bitmap');
+    }
 
-    this.module._FPDFBitmap_FillRect(
-      bitmap,
-      0, // left
-      0, // top
-      width, // width
-      height, // height
-      0xffffffff, // color (white)
-    );
+    try {
+      const bitmap = this.module._FPDFBitmap_CreateEx(
+        width,
+        height,
+        bytesPerPixel,
+        ptr,
+        width * bytesPerPixel,
+      );
 
-    let flags = FPDFRenderFlag.ANNOT | FPDFRenderFlag.LCD_TEXT;
+      this.module._FPDFBitmap_FillRect(
+        bitmap,
+        0, // left
+        0, // top
+        width, // width
+        height, // height
+        0xffffffff, // color (white)
+      );
 
-    flags = colorSpace === "Gray" ? flags | FPDFRenderFlag.GRAYSCALE : flags | FPDFRenderFlag.REVERSE_BYTE_ORDER;
+      let flags = FPDFRenderFlag.ANNOT | FPDFRenderFlag.LCD_TEXT;
 
-    this.module._FPDF_RenderPageBitmap(
-      bitmap,
-      this.pageIdx,
-      0, // start_x
-      0, // start_y
-      width, // size_x
-      height, // size_y
-      0, // rotate (0, normal)
-      flags, // flags
-    );
+      flags =
+        colorSpace === 'Gray'
+          ? flags | FPDFRenderFlag.GRAYSCALE
+          : flags | FPDFRenderFlag.REVERSE_BYTE_ORDER;
 
-    if (formIdx) {
-      // Second draw pass – draw the interactive form widgets on top of previously draw call
-      // Remove ANNOT flags to avoid rendering popup annotations (e.g. tooltips).
-      const formFlags = flags & ~FPDFRenderFlag.ANNOT;
-      this.module._FPDF_FFLDraw(
-        formIdx,
+      this.module._FPDF_RenderPageBitmap(
         bitmap,
         this.pageIdx,
         0, // start_x
@@ -157,33 +158,52 @@ export class PDFiumPage {
         width, // size_x
         height, // size_y
         0, // rotate (0, normal)
-        formFlags, // flags
+        flags, // flags
       );
-      this.module._FORM_OnBeforeClosePage(this.pageIdx, formIdx);
+
+      if (formIdx !== null) {
+        // Second draw pass – draw the interactive form widgets on top of previously draw call
+        // Remove ANNOT flags to avoid rendering popup annotations (e.g. tooltips).
+        const formFlags = flags & ~FPDFRenderFlag.ANNOT;
+        this.module._FPDF_FFLDraw(
+          formIdx,
+          bitmap,
+          this.pageIdx,
+          0, // start_x
+          0, // start_y
+          width, // size_x
+          height, // size_y
+          0, // rotate (0, normal)
+          formFlags, // flags
+        );
+
+        this.module._FORM_OnBeforeClosePage(this.pageIdx, formIdx);
+      }
+
+      this.module._FPDFBitmap_Destroy(bitmap);
+
+      // TODO: consider to create a separate function for closing the page and free
+      // resources only when needed, not after every render
+      this.module._FPDF_ClosePage(this.pageIdx);
+
+      const image = await this.convertBitmapToImage({
+        render,
+        width,
+        height,
+        // ⚠️ creation of a copy is necessary to avoid memory corruption
+        data: this.module.HEAPU8.slice(ptr, ptr + buffSize),
+      });
+
+      return {
+        width,
+        height,
+        originalHeight,
+        originalWidth,
+        data: image,
+      };
+    } finally {
+      this.module.wasmExports.free(ptr);
     }
-
-    this.module._FPDFBitmap_Destroy(bitmap);
-
-    // TODO: consider to create a separate function for closing the page and free
-    // resources only when needed, not after every render
-    this.module._FPDF_ClosePage(this.pageIdx);
-
-    const image = await this.convertBitmapToImage({
-      render,
-      width,
-      height,
-      data: Buffer.from(this.module.HEAPU8.buffer, ptr, buffSize),
-    });
-
-    this.module.wasmExports.free(ptr);
-
-    return {
-      width,
-      height,
-      originalHeight,
-      originalWidth,
-      data: image,
-    };
   }
 
   async convertBitmapToImage(
